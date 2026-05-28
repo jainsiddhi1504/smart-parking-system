@@ -1,0 +1,14 @@
+package com.siddhi.smartparking.repository;
+
+import com.siddhi.smartparking.entity.ParkingHistory;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+public interface ParkingHistoryRepository
+        extends JpaRepository<ParkingHistory, Long> {
+    ParkingHistory findTopByVehicleNumberOrderByEntryTimeDesc(
+            String vehicleNumber
+    );
+    @Query("SELECT SUM(p.fee) FROM ParkingHistory p")
+    Double getTotalRevenue();
+}
