@@ -11,6 +11,7 @@ import com.siddhi.smartparking.repository.WaitingQueueRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import java.time.Duration;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,6 +23,7 @@ public class ParkingSlotService {
     private final VehicleRepository vehicleRepository;
     private final WaitingQueueRepository waitingQueueRepository;
     private final ParkingHistoryRepository parkingHistoryRepository;
+
 
     public ParkingSlotService(
             ParkingSlotRepository parkingSlotRepository,
@@ -344,6 +346,7 @@ public class ParkingSlotService {
     }
 
     // Get only available slots
+    //@Cacheable("availableSlots")
     public List<ParkingSlot> getAvailableSlots() {
 
         return parkingSlotRepository

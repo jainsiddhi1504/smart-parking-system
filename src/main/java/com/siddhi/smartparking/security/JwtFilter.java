@@ -27,24 +27,33 @@ public class JwtFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        // Skip JWT validation for login/register APIs
+        if (request.getRequestURI().startsWith("/auth")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authHeader =
                 request.getHeader("Authorization");
 
         String token = null;
-
         String username = null;
 
-        // Check Bearer token
         if (authHeader != null &&
                 authHeader.startsWith("Bearer ")) {
 
             token = authHeader.substring(7);
+            System.out.println("TOKEN = " + token);
 
-            username =
-                    jwtUtil.extractUsername(token);
+            try {
+                username = jwtUtil.extractUsername(token);
+                System.out.println("USERNAME = " + username);
+            } catch (Exception e) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
         }
 
-        // Authenticate user
         if (username != null &&
                 SecurityContextHolder
                         .getContext()

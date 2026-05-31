@@ -4,7 +4,6 @@ import com.siddhi.smartparking.dto.LoginRequest;
 import com.siddhi.smartparking.dto.RegisterRequest;
 import com.siddhi.smartparking.entity.User;
 import com.siddhi.smartparking.repository.UserRepository;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +33,6 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
 
-        // Encrypt password
         user.setPassword(
                 passwordEncoder.encode(request.getPassword())
         );
@@ -60,7 +58,6 @@ public class UserService {
             throw new RuntimeException("Invalid password");
         }
 
-        // Generate JWT token
         return jwtService.generateToken(user.getEmail());
     }
 }

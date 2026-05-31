@@ -3,21 +3,25 @@ package com.siddhi.smartparking.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
 
-    // Secret key
-    private final String SECRET_KEY =
-            "smartparkingsecretkey";
+    private static final String SECRET =
+            "SmartParkingSuperSecureJwtSecretKey2026ForInternshipProjectAndRedisIntegration12345";
 
-    // Generate token
-    public String generateToken(
-            String username
-    ) {
+    private final SecretKey SECRET_KEY =
+            Keys.hmacShaKeyFor(
+                    SECRET.getBytes(StandardCharsets.UTF_8)
+            );
+
+    public String generateToken(String username) {
 
         return Jwts.builder()
                 .setSubject(username)
@@ -29,36 +33,30 @@ public class JwtUtil {
                         )
                 )
                 .signWith(
-                        SignatureAlgorithm.HS256,
-                        SECRET_KEY
+                        SECRET_KEY,
+                        SignatureAlgorithm.HS256
                 )
                 .compact();
     }
 
-    // Extract username
-    public String extractUsername(
-            String token
-    ) {
+    public String extractUsername(String token) {
 
         Claims claims =
-                Jwts.parser()
+                Jwts.parserBuilder()
                         .setSigningKey(SECRET_KEY)
+                        .build()
                         .parseClaimsJws(token)
                         .getBody();
 
         return claims.getSubject();
     }
 
-    // Validate token
     public boolean validateToken(
             String token,
             String username
     ) {
 
-        String extractedUsername =
-                extractUsername(token);
-
-        return extractedUsername
+        return extractUsername(token)
                 .equals(username);
     }
 }

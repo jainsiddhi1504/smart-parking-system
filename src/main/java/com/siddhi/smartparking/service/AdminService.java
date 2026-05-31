@@ -63,6 +63,30 @@ public class AdminService {
                 vehicleRepository.findAll().size()
         );
 
+        long occupied =
+                parkingSlotRepository
+                        .findByStatus("OCCUPIED")
+                        .size();
+
+        long available =
+                parkingSlotRepository
+                        .findByStatus("AVAILABLE")
+                        .size();
+
+        long totalSlots = occupied + available;
+
+        double occupancyPercentage = 0;
+
+        if (totalSlots > 0) {
+
+            occupancyPercentage =
+                    ((double) occupied / totalSlots) * 100;
+        }
+
+        response.setOccupancyPercentage(
+                occupancyPercentage
+        );
+
         return response;
     }
 }

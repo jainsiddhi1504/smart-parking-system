@@ -4,6 +4,10 @@ public class DashboardResponse {
 
     private double totalRevenue;
 
+    private double todayRevenue;
+
+    private double occupancyPercentage;
+
     private long occupiedSlots;
 
     private long availableSlots;
@@ -16,6 +20,14 @@ public class DashboardResponse {
 
     public void setTotalRevenue(double totalRevenue) {
         this.totalRevenue = totalRevenue;
+    }
+
+    public double getTodayRevenue() {
+        return todayRevenue;
+    }
+
+    public void setTodayRevenue(double todayRevenue) {
+        this.todayRevenue = todayRevenue;
     }
 
     public long getOccupiedSlots() {
@@ -42,5 +54,12 @@ public class DashboardResponse {
             long totalVehiclesParked
     ) {
         this.totalVehiclesParked = totalVehiclesParked;
+    }
+    public double getOccupancyPercentage() {
+        return occupancyPercentage;
+    }
+
+    public void setOccupancyPercentage(double occupancyPercentage) {
+        this.occupancyPercentage = occupancyPercentage;
     }
 }

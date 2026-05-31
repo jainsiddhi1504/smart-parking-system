@@ -6,9 +6,11 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface ParkingHistoryRepository
         extends JpaRepository<ParkingHistory, Long> {
+
     ParkingHistory findTopByVehicleNumberOrderByEntryTimeDesc(
             String vehicleNumber
     );
-    @Query("SELECT SUM(p.fee) FROM ParkingHistory p")
+
+    @Query("SELECT COALESCE(SUM(p.fee),0) FROM ParkingHistory p")
     Double getTotalRevenue();
 }
