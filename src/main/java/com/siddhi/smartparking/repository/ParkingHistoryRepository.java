@@ -11,6 +11,18 @@ public interface ParkingHistoryRepository
             String vehicleNumber
     );
 
-    @Query("SELECT COALESCE(SUM(p.fee),0) FROM ParkingHistory p")
+    @Query(
+            "SELECT COALESCE(SUM(p.fee),0) " +
+                    "FROM ParkingHistory p"
+    )
     Double getTotalRevenue();
+
+    @Query(
+            "SELECT COALESCE(SUM(p.fee),0) " +
+                    "FROM ParkingHistory p " +
+                    "WHERE CAST(p.entryTime AS date) = CURRENT_DATE"
+    )
+    Double getTodayRevenue();
+
+    long count();
 }

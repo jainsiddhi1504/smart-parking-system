@@ -1,7 +1,5 @@
 package com.siddhi.smartparking.service;
 
-import com.siddhi.smartparking.entity.WaitingQueue;
-import com.siddhi.smartparking.repository.WaitingQueueRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -9,43 +7,37 @@ import java.util.List;
 @Service
 public class WaitingQueueService {
 
-    private final WaitingQueueRepository waitingQueueRepository;
+    private final RedisService redisService;
 
     public WaitingQueueService(
-            WaitingQueueRepository waitingQueueRepository
+            RedisService redisService
     ) {
-        this.waitingQueueRepository = waitingQueueRepository;
+        this.redisService = redisService;
     }
 
-    // Add user to queue
-    public WaitingQueue addToQueue(
-            WaitingQueue waitingQueue
+    // Add vehicle to queue
+    public void addToQueue(
+            String vehicleNumber
     ) {
-        return waitingQueueRepository.save(waitingQueue);
+
+        redisService.addToQueue(vehicleNumber);
     }
 
-    // Get all queue users
-    public List<WaitingQueue> getQueue() {
+    // Get entire queue
+    public List<Object> getQueue() {
 
-        return waitingQueueRepository.findAll();
+        return redisService.getQueue();
     }
 
-    // Get first waiting user
-    public WaitingQueue getFirstUser() {
+    // Get next vehicle
+    public String getFirstUser() {
 
-        List<WaitingQueue> queue =
-                waitingQueueRepository.findAll();
-
-        if (queue.isEmpty()) {
-            return null;
-        }
-
-        return queue.get(0);
+        return redisService.getNextVehicle();
     }
 
-    // Remove user from queue
-    public void removeFromQueue(Long id) {
+    // Queue size
+    public Long getQueueSize() {
 
-        waitingQueueRepository.deleteById(id);
+        return redisService.getQueueSize();
     }
 }

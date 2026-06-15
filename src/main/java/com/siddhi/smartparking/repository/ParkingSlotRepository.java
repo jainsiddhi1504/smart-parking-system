@@ -15,4 +15,8 @@ public interface ParkingSlotRepository
     ParkingSlot findByVehicleVehicleNumber(
             String vehicleNumber
     );
+
+    long countByStatus(String status);
+
+    long count();
 }

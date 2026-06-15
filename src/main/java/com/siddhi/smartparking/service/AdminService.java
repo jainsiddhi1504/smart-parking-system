@@ -4,61 +4,62 @@ import com.siddhi.smartparking.dto.DashboardResponse;
 import com.siddhi.smartparking.repository.ParkingHistoryRepository;
 import com.siddhi.smartparking.repository.ParkingSlotRepository;
 import com.siddhi.smartparking.repository.VehicleRepository;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AdminService {
 
     private final ParkingHistoryRepository parkingHistoryRepository;
-
     private final ParkingSlotRepository parkingSlotRepository;
-
     private final VehicleRepository vehicleRepository;
+    private final CacheManager cacheManager;
 
     public AdminService(
             ParkingHistoryRepository parkingHistoryRepository,
             ParkingSlotRepository parkingSlotRepository,
-            VehicleRepository vehicleRepository
+            VehicleRepository vehicleRepository,
+            CacheManager cacheManager
     ) {
-        this.parkingHistoryRepository =
-                parkingHistoryRepository;
-
-        this.parkingSlotRepository =
-                parkingSlotRepository;
-
-        this.vehicleRepository =
-                vehicleRepository;
+        this.parkingHistoryRepository = parkingHistoryRepository;
+        this.parkingSlotRepository = parkingSlotRepository;
+        this.vehicleRepository = vehicleRepository;
+        this.cacheManager = cacheManager;
     }
 
+    @Cacheable("dashboard")
     public DashboardResponse getDashboard() {
+
+        System.out.println(
+                "CACHE MANAGER = "
+                        + cacheManager.getClass().getName()
+        );
+
+        System.out.println("INSIDE getDashboard()");
 
         DashboardResponse response =
                 new DashboardResponse();
 
-        // Total revenue
         Double revenue =
-                parkingHistoryRepository
-                        .getTotalRevenue();
+                parkingHistoryRepository.getTotalRevenue();
 
         response.setTotalRevenue(
                 revenue != null ? revenue : 0
         );
 
-        // Occupied slots
         response.setOccupiedSlots(
                 parkingSlotRepository
                         .findByStatus("OCCUPIED")
                         .size()
         );
 
-        // Available slots
         response.setAvailableSlots(
                 parkingSlotRepository
                         .findByStatus("AVAILABLE")
                         .size()
         );
 
-        // Total parked vehicles
         response.setTotalVehiclesParked(
                 vehicleRepository.findAll().size()
         );
@@ -78,7 +79,6 @@ public class AdminService {
         double occupancyPercentage = 0;
 
         if (totalSlots > 0) {
-
             occupancyPercentage =
                     ((double) occupied / totalSlots) * 100;
         }

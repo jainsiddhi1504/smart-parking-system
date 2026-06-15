@@ -2,6 +2,7 @@ package com.siddhi.smartparking.controller;
 
 import com.siddhi.smartparking.entity.Vehicle;
 import com.siddhi.smartparking.service.VehicleService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +22,7 @@ public class VehicleController {
     // Add vehicle
     @PostMapping
     public Vehicle addVehicle(
+            @Valid
             @RequestBody Vehicle vehicle
     ) {
         return vehicleService.addVehicle(vehicle);
@@ -30,5 +32,13 @@ public class VehicleController {
     @GetMapping
     public List<Vehicle> getAllVehicles() {
         return vehicleService.getAllVehicles();
+    }
+
+    // Get vehicle by ID
+    @GetMapping("/{id}")
+    public Vehicle getVehicleById(
+            @PathVariable Long id
+    ) {
+        return vehicleService.getVehicleById(id);
     }
 }

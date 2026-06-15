@@ -4,6 +4,7 @@ import com.siddhi.smartparking.entity.ParkingHistory;
 import com.siddhi.smartparking.entity.ParkingSlot;
 import com.siddhi.smartparking.entity.Vehicle;
 import com.siddhi.smartparking.entity.WaitingQueue;
+import com.siddhi.smartparking.kafka.ParkingEventProducer;
 import com.siddhi.smartparking.repository.ParkingHistoryRepository;
 import com.siddhi.smartparking.repository.ParkingSlotRepository;
 import com.siddhi.smartparking.repository.VehicleRepository;
@@ -11,8 +12,10 @@ import com.siddhi.smartparking.repository.WaitingQueueRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import java.time.Duration;
 import org.springframework.stereotype.Service;
+import com.siddhi.smartparking.service.EmailService;
 import org.springframework.cache.annotation.Cacheable;
-
+import java.io.File;
+import com.siddhi.smartparking.service.PdfReceiptService;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,19 +26,33 @@ public class ParkingSlotService {
     private final VehicleRepository vehicleRepository;
     private final WaitingQueueRepository waitingQueueRepository;
     private final ParkingHistoryRepository parkingHistoryRepository;
-
+    private final ParkingEventProducer parkingEventProducer;
+    private final EmailService emailService;
+    private final PdfReceiptService pdfReceiptService;
+    private final RedisService redisService;
+    private final WaitingQueueService waitingQueueService;
 
     public ParkingSlotService(
             ParkingSlotRepository parkingSlotRepository,
             VehicleRepository vehicleRepository,
             WaitingQueueRepository waitingQueueRepository,
-            ParkingHistoryRepository parkingHistoryRepository
+            ParkingHistoryRepository parkingHistoryRepository,
+            ParkingEventProducer parkingEventProducer,
+            EmailService emailService,
+            PdfReceiptService pdfReceiptService,
+            RedisService redisService,
+            WaitingQueueService waitingQueueService
+
     ) {
         this.parkingSlotRepository = parkingSlotRepository;
         this.vehicleRepository = vehicleRepository;
         this.waitingQueueRepository = waitingQueueRepository;
-        this.parkingHistoryRepository =
-                parkingHistoryRepository;
+        this.parkingHistoryRepository = parkingHistoryRepository;
+        this.parkingEventProducer = parkingEventProducer;
+        this.emailService = emailService;
+        this.pdfReceiptService = pdfReceiptService;
+        this.redisService=redisService;
+        this.waitingQueueService=waitingQueueService;
     }
 
     // Add parking slot
@@ -89,6 +106,13 @@ public class ParkingSlotService {
         // Store booking time
         slot.setBookingTime(
                 LocalDateTime.now()
+        );
+
+        parkingEventProducer.sendEvent(
+                "SLOT_BOOKED : "
+                        + slot.getSlotNumber()
+                        + " BY "
+                        + vehicle.getVehicleNumber()
         );
 
         return parkingSlotRepository.save(slot);
@@ -203,7 +227,7 @@ public class ParkingSlotService {
                                 duration.toHours()
                         );
 
-                // ₹20 per hour
+                // ₹20 first hour, ₹30 every additional hour
                 double fee;
 
                 if (hours <= 1) {
@@ -218,6 +242,38 @@ public class ParkingSlotService {
                 history.setFee(fee);
 
                 parkingHistoryRepository.save(history);
+
+                parkingEventProducer.sendEvent(
+                        "VEHICLE_EXITED : "
+                                + oldVehicle.getVehicleNumber()
+                                + " FEE = ₹" + fee
+                );
+
+                if (oldVehicle.getOwnerEmail() != null
+                        && !oldVehicle.getOwnerEmail().isBlank()) {
+
+                    try {
+
+                        File receipt =
+                                pdfReceiptService.generateReceipt(
+                                        oldVehicle.getVehicleNumber(),
+                                        oldVehicle.getOwnerName(),
+                                        slot.getSlotNumber(),
+                                        fee
+                                );
+
+                        emailService.sendEmailWithAttachment(
+                                oldVehicle.getOwnerEmail(),
+                                "Parking Receipt",
+                                "Please find your parking receipt attached.",
+                                receipt
+                        );
+
+                    } catch (Exception e) {
+
+                        e.printStackTrace();
+                    }
+                }
             }
         }
 
@@ -228,58 +284,81 @@ public class ParkingSlotService {
 
         parkingSlotRepository.save(slot);
 
-        // Check waiting queue
-        List<WaitingQueue> queue =
-                waitingQueueRepository.findAll();
+        // Check Redis waiting queue
+        String nextVehicleNumber =
+                redisService.getNextVehicle();
 
-        // Auto assign queue user
-        if (!queue.isEmpty()) {
+        if (nextVehicleNumber != null) {
 
-            WaitingQueue waitingUser = queue.get(0);
+            System.out.println("NEXT VEHICLE = " + nextVehicleNumber);
+
+            parkingEventProducer.sendEvent(
+                    "SLOT_AVAILABLE_FOR:" + nextVehicleNumber
+            );
+
+            System.out.println(
+                    "NOTIFIED WAITING VEHICLE: "
+                            + nextVehicleNumber
+            );
 
             Vehicle vehicle =
-                    waitingUser.getVehicle();
+                    vehicleRepository
+                            .findByVehicleNumber(
+                                    nextVehicleNumber
+                            )
+                            .orElseThrow(
+                                    () -> new RuntimeException(
+                                            "Vehicle not found"
+                                    )
+                            );
 
-            // Assign slot
+            System.out.println("FOUND VEHICLE = " + vehicle.getVehicleNumber());
+
+            // Assign slot automatically
             slot.setVehicle(vehicle);
 
             slot.setStatus("OCCUPIED");
 
-            // Update vehicle
             vehicle.setParked(true);
 
             vehicleRepository.save(vehicle);
 
-            // Create parking history
-            ParkingHistory history =
+
+
+            // Create new parking history
+            ParkingHistory newHistory =
                     new ParkingHistory();
 
-            history.setVehicleNumber(
+            newHistory.setVehicleNumber(
                     vehicle.getVehicleNumber()
             );
 
-            history.setOwnerName(
+            newHistory.setOwnerName(
                     vehicle.getOwnerName()
             );
 
-            history.setSlotNumber(
+            newHistory.setSlotNumber(
                     slot.getSlotNumber()
             );
 
-            history.setEntryTime(
+            newHistory.setEntryTime(
                     LocalDateTime.now()
             );
 
-            history.setFee(0);
+            newHistory.setFee(0);
 
-            parkingHistoryRepository.save(history);
-
-            // Remove from queue
-            waitingQueueRepository.deleteById(
-                    waitingUser.getId()
-            );
+            parkingHistoryRepository.save(newHistory);
 
             parkingSlotRepository.save(slot);
+
+            System.out.println("SLOT ASSIGNED");
+
+            parkingEventProducer.sendEvent(
+                    "VEHICLE_AUTO_ASSIGNED : "
+                            + vehicle.getVehicleNumber()
+                            + " -> SLOT "
+                            + slot.getSlotNumber()
+            );
         }
 
         return slot;
@@ -316,6 +395,10 @@ public class ParkingSlotService {
 
         vehicleRepository.save(vehicle);
 
+        redisService.removeFromQueue(
+                vehicle.getVehicleNumber()
+        );
+
         slot.setVehicle(vehicle);
 
         // Create parking history
@@ -341,6 +424,29 @@ public class ParkingSlotService {
         history.setFee(0);
 
         parkingHistoryRepository.save(history);
+
+        parkingEventProducer.sendEvent(
+                "VEHICLE_PARKED : "
+                        + vehicle.getVehicleNumber()
+        );
+
+        if (vehicle.getOwnerEmail() != null
+                && !vehicle.getOwnerEmail().isBlank()) {
+
+            System.out.println(
+                    "EMAIL CHECK: " + vehicle.getOwnerEmail()
+            );
+
+            emailService.sendEmail(
+                    vehicle.getOwnerEmail(),
+                    "Parking Confirmation",
+                    "Hello " + vehicle.getOwnerName()
+                            + ", your vehicle "
+                            + vehicle.getVehicleNumber()
+                            + " has been parked successfully in slot "
+                            + slot.getSlotNumber()
+            );
+        }
 
         return parkingSlotRepository.save(slot);
     }
@@ -405,5 +511,49 @@ public class ParkingSlotService {
         }
 
         return slot;
+    }
+
+    public ParkingSlot unparkSlot(Long slotId) {
+
+        ParkingSlot slot = parkingSlotRepository.findById(slotId)
+                .orElseThrow(() ->
+                        new RuntimeException("Slot not found"));
+
+        if (!slot.getStatus().equals("OCCUPIED")) {
+            throw new RuntimeException(
+                    "Slot is already free"
+            );
+        }
+
+        Vehicle vehicle = slot.getVehicle();
+
+        slot.setStatus("AVAILABLE");
+        slot.setVehicle(null);
+        slot.setBookingTime(null);
+
+        parkingEventProducer.sendEvent(
+                "SLOT_AVAILABLE : "
+                        + slot.getSlotNumber()
+        );
+
+        String nextVehicle = waitingQueueService.getFirstUser();
+
+        if (nextVehicle != null) {
+
+            parkingEventProducer.sendEvent(
+
+                    "SLOT_AVAILABLE_FOR:" + nextVehicle
+
+            );
+
+            System.out.println(
+
+                    "NOTIFIED WAITING VEHICLE: " + nextVehicle
+
+            );
+
+        }
+
+        return parkingSlotRepository.save(slot);
     }
 }

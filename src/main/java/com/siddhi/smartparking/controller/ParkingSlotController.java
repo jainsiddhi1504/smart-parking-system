@@ -86,4 +86,11 @@ public class ParkingSlotController {
                         vehicleNumber
                 );
     }
+
+    @PutMapping("/unpark/{slotId}")
+    public ParkingSlot unparkSlot(
+            @PathVariable Long slotId
+    ) {
+        return parkingSlotService.unparkSlot(slotId);
+    }
 }

@@ -6,8 +6,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.cache.annotation.EnableCaching;
 
 @SpringBootApplication
+
 @EnableScheduling
-//@EnableCaching
+@EnableCaching
 
 public class SmartparkingApplication {
 

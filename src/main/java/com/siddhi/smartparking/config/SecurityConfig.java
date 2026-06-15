@@ -1,13 +1,13 @@
 package com.siddhi.smartparking.config;
 
+import com.siddhi.smartparking.security.JwtFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import com.siddhi.smartparking.security.JwtFilter;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -26,16 +26,20 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Public APIs
                         .requestMatchers(
-                                "/auth/**"
+                                "/auth/**",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/kafka/test"
                         ).permitAll()
 
-                        // Secure all other APIs
+                        .requestMatchers(
+                                "/admin/**"
+                        ).permitAll()
+
                         .anyRequest().authenticated()
                 )
 
-                // Disable login form
                 .formLogin(form -> form.disable())
 
                 .addFilterBefore(

@@ -1,6 +1,7 @@
 package com.siddhi.smartparking.service;
 
 import com.siddhi.smartparking.entity.Vehicle;
+import com.siddhi.smartparking.exception.ResourceNotFoundException;
 import com.siddhi.smartparking.repository.VehicleRepository;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,15 @@ public class VehicleService {
 
         vehicle.setParked(false);
 
+        if (vehicleRepository.findByVehicleNumber(
+                vehicle.getVehicleNumber()
+        ).isPresent()) {
+
+            throw new RuntimeException(
+                    "Vehicle number already exists"
+            );
+        }
+
         return vehicleRepository.save(vehicle);
     }
 
@@ -29,5 +39,17 @@ public class VehicleService {
     public List<Vehicle> getAllVehicles() {
 
         return vehicleRepository.findAll();
+    }
+
+    // Get vehicle by ID
+    public Vehicle getVehicleById(Long id) {
+
+        return vehicleRepository
+                .findById(id)
+                .orElseThrow(
+                        () -> new ResourceNotFoundException(
+                                "Vehicle not found with id: " + id
+                        )
+                );
     }
 }

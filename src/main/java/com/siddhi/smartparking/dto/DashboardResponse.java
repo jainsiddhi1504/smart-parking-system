@@ -1,6 +1,10 @@
 package com.siddhi.smartparking.dto;
 
-public class DashboardResponse {
+import java.io.Serializable;
+
+public class DashboardResponse implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private double totalRevenue;
 
@@ -13,6 +17,10 @@ public class DashboardResponse {
     private long availableSlots;
 
     private long totalVehiclesParked;
+
+    private long totalSlots;
+
+    private long queueSize;
 
     public double getTotalRevenue() {
         return totalRevenue;
@@ -28,6 +36,14 @@ public class DashboardResponse {
 
     public void setTodayRevenue(double todayRevenue) {
         this.todayRevenue = todayRevenue;
+    }
+
+    public double getOccupancyPercentage() {
+        return occupancyPercentage;
+    }
+
+    public void setOccupancyPercentage(double occupancyPercentage) {
+        this.occupancyPercentage = occupancyPercentage;
     }
 
     public long getOccupiedSlots() {
@@ -50,16 +66,23 @@ public class DashboardResponse {
         return totalVehiclesParked;
     }
 
-    public void setTotalVehiclesParked(
-            long totalVehiclesParked
-    ) {
+    public void setTotalVehiclesParked(long totalVehiclesParked) {
         this.totalVehiclesParked = totalVehiclesParked;
     }
-    public double getOccupancyPercentage() {
-        return occupancyPercentage;
+
+    public long getTotalSlots() {
+        return totalSlots;
     }
 
-    public void setOccupancyPercentage(double occupancyPercentage) {
-        this.occupancyPercentage = occupancyPercentage;
+    public void setTotalSlots(long totalSlots) {
+        this.totalSlots = totalSlots;
+    }
+
+    public long getQueueSize() {
+        return queueSize;
+    }
+
+    public void setQueueSize(long queueSize) {
+        this.queueSize = queueSize;
     }
 }
