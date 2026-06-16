@@ -93,4 +93,35 @@ class VehicleServiceTest {
                 () -> vehicleService.getVehicleById(1L)
         );
     }
+    @Test
+    void shouldReturnAllVehicles() {
+
+        Vehicle vehicle1 = new Vehicle();
+        vehicle1.setVehicleNumber("WB01AA1111");
+
+        Vehicle vehicle2 = new Vehicle();
+        vehicle2.setVehicleNumber("WB01AA2222");
+
+        when(vehicleRepository.findAll())
+                .thenReturn(
+                        java.util.List.of(
+                                vehicle1,
+                                vehicle2
+                        )
+                );
+
+        java.util.List<Vehicle> vehicles =
+                vehicleService.getAllVehicles();
+
+        assertEquals(2, vehicles.size());
+        assertEquals(
+                "WB01AA1111",
+                vehicles.get(0).getVehicleNumber()
+        );
+        assertEquals(
+                "WB01AA2222",
+                vehicles.get(1).getVehicleNumber()
+        );
+    }
+
 }

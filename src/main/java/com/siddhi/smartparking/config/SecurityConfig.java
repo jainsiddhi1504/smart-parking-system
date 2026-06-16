@@ -30,7 +30,10 @@ public class SecurityConfig {
                                 "/auth/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
+                                "/ws-test",
+                                "/ws/**",
                                 "/kafka/test"
+
                         ).permitAll()
 
                         .requestMatchers(

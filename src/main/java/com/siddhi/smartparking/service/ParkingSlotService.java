@@ -18,6 +18,8 @@ import java.io.File;
 import com.siddhi.smartparking.service.PdfReceiptService;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.siddhi.smartparking.dto.DashboardUpdate;
 
 @Service
 public class ParkingSlotService {
@@ -31,6 +33,7 @@ public class ParkingSlotService {
     private final PdfReceiptService pdfReceiptService;
     private final RedisService redisService;
     private final WaitingQueueService waitingQueueService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public ParkingSlotService(
             ParkingSlotRepository parkingSlotRepository,
@@ -41,7 +44,8 @@ public class ParkingSlotService {
             EmailService emailService,
             PdfReceiptService pdfReceiptService,
             RedisService redisService,
-            WaitingQueueService waitingQueueService
+            WaitingQueueService waitingQueueService,
+            SimpMessagingTemplate messagingTemplate
 
     ) {
         this.parkingSlotRepository = parkingSlotRepository;
@@ -53,6 +57,7 @@ public class ParkingSlotService {
         this.pdfReceiptService = pdfReceiptService;
         this.redisService=redisService;
         this.waitingQueueService=waitingQueueService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     // Add parking slot
@@ -115,7 +120,11 @@ public class ParkingSlotService {
                         + vehicle.getVehicleNumber()
         );
 
-        return parkingSlotRepository.save(slot);
+        ParkingSlot savedSlot=parkingSlotRepository.save(slot);
+
+        sendDashboardUpdate();
+
+        return savedSlot;
     }
 
     public ParkingSlot checkInVehicle(
@@ -361,6 +370,8 @@ public class ParkingSlotService {
             );
         }
 
+        sendDashboardUpdate();
+
         return slot;
     }
 
@@ -556,4 +567,22 @@ public class ParkingSlotService {
 
         return parkingSlotRepository.save(slot);
     }
+
+    private void sendDashboardUpdate() {
+
+        long available =
+                parkingSlotRepository.countByStatus("AVAILABLE");
+
+        long occupied =
+                parkingSlotRepository.countByStatus("OCCUPIED");
+
+        DashboardUpdate update =
+                new DashboardUpdate(available, occupied);
+
+        messagingTemplate.convertAndSend(
+                "/topic/dashboard",
+                update
+        );
+    }
+
 }
